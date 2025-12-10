@@ -12,6 +12,8 @@
 static const int PAGINAS_INICIAIS[NUM_FRAMES] = {3, 1, 0, 5, 4, 9, 2, 11};
 
 static const int TIPO_ACESSO[TRACE_LEN] = {
+//0 leitura R
+//1 escruta
 /*  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 */
     0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0
 };
@@ -251,29 +253,70 @@ static void simular(const Algoritmo *alg, Simulador *s) {
     }
 
     
-    printf("%-15s  hits=%2d  misses=%2d\n", alg->nome, s->hits, s->misses);
 }
 
 
 int main(void) {
-    
+
     const Algoritmo algoritmos[] = {
         {"FIFO",            choose_FIFO,   0},
         {"Segunda Chance",  choose_SC,     0},
         {"Relogio",         choose_Clock,  0},
         {"MRU",             choose_MRU,    0},
-        {"NUR",             choose_NUR,    8}  
+        {"NUR",             choose_NUR,    8}
     };
     const int N = (int)(sizeof(algoritmos)/sizeof(algoritmos[0]));
 
-#if DEBUG
-    printf("Simulador de Substituicao de Paginas (DEBUG=%d)\n", DEBUG);
-#endif
+
+    printf("========================================\n");
+    printf("      CONFIGURACOES DO SISTEMA\n");
+    printf("========================================\n");
+    printf("Memoria Fisica: 32 KB\n");
+    printf(" - 8 molduras de 4 KB cada\n");
+    printf("Memoria Virtual: 64 KB\n");
+    printf(" - 16 paginas de 4 KB cada\n");
+    printf("Tamanho da pagina/moldura: 4 KB\n");
+    printf("Numero de acessos no trace: %d\n", TRACE_LEN);
+    printf("\n");
+
+
+    int hits[N], misses[N];
+    double taxa[N];
 
     for (int i = 0; i < N; ++i) {
         Simulador s;
         simular(&algoritmos[i], &s);
+        hits[i] = s.hits;
+        misses[i] = s.misses;
+        taxa[i] = (double)s.hits / TRACE_LEN * 100.0;
     }
+
+    printf("\n========================================\n");
+    printf("        RELATORIO COMPARATIVO\n");
+    printf("========================================\n");
+    printf("%-15s  %-7s  %-7s  %-10s\n", "Algoritmo", "Hits", "Misses", "Taxa(%)");
+    printf("----------------------------------------\n");
+
+    for (int i = 0; i < N; ++i) {
+        printf("%-15s  %-7d  %-7d  %-10.2f\n",
+               algoritmos[i].nome, hits[i], misses[i], taxa[i]);
+    }
+    printf("\n");
+
+
+    int melhor = 0, pior = 0;
+    for (int i = 1; i < N; ++i) {
+        if (taxa[i] > taxa[melhor]) melhor = i;
+        if (taxa[i] < taxa[pior])   pior = i;
+    }
+
+    printf("\n========================================\n");
+    printf("           DESEMPENHO FINAL\n");
+    printf("========================================\n");
+    printf("Melhor algoritmo: %s (%.2f%% de acerto)\n",
+           algoritmos[melhor].nome, taxa[melhor]);
+    printf("Pior algoritmo:   %s (%.2f%% de acerto)\n",
+           algoritmos[pior].nome, taxa[pior]);
 
     return 0;
 }
